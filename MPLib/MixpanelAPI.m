@@ -3,7 +3,9 @@
 //  MPLib
 //
 //
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
+#endif
 #import <CommonCrypto/CommonHMAC.h>
 #import "MixpanelAPI.h"
 #import "MixpanelEvent.h"
@@ -37,8 +39,10 @@
 -(void)unarchiveData;
 -(void)archiveData;
 -(void)applicationWillTerminate:(NSNotification *)notification;
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 -(void)applicationWillEnterForeground:(NSNotificationCenter *)notification;
 -(void)applicationDidEnterBackground:(NSNotificationCenter *)notification;
+#endif
 @end
 
 @implementation MixpanelAPI
@@ -179,6 +183,8 @@ NSString* getPlatform()
 }
 - (void) start {
     NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
+
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40000		
     if ([[UIDevice currentDevice] respondsToSelector:@selector(isMultitaskingSupported)] && &UIBackgroundTaskInvalid) {
         
@@ -201,6 +207,12 @@ NSString* getPlatform()
                            selector:@selector(applicationWillTerminate:) 
                                name:UIApplicationWillTerminateNotification 
                              object:nil];
+#else
+  [notificationCenter addObserver:self 
+                         selector:@selector(applicationWillTerminate:) 
+                             name:NSApplicationWillTerminateNotification 
+                           object:nil];
+#endif
     
     self.defaultUserId = calculateHMAC_SHA1([self userIdentifier], self.apiToken);
     [self identifyUser:self.defaultUserId];
@@ -347,6 +359,7 @@ NSString* getPlatform()
 	[self archiveData];
 }
 
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
 - (void)applicationDidEnterBackground:(NSNotificationCenter*) notification
 {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40000
@@ -384,6 +397,7 @@ NSString* getPlatform()
 	}
 #endif
 }
+#endif
 
 #pragma mark -
 #pragma mark Timer Callback and Networking code
@@ -407,7 +421,9 @@ NSString* getPlatform()
 	MPCJSONDataSerializer *serializer = [MPCJSONDataSerializer serializer];
 	NSData *data = [serializer serializeArray:[eventsToSend valueForKey:@"dictionaryValue"]
                                         error:nil];
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE  
 	[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:YES];
+#endif
     NSString *b64String = [data mp_base64EncodedString];
     b64String = (id)CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
                                                                     (CFStringRef)b64String,
@@ -453,6 +469,7 @@ NSString* getPlatform()
 	self.responseData = nil;
 	self.connection = nil;
     [self archiveData];
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE  
 	[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40000
 	if (&UIBackgroundTaskInvalid && [[UIApplication sharedApplication] respondsToSelector:@selector(endBackgroundTask:)] && taskId != UIBackgroundTaskInvalid) {
@@ -460,6 +477,7 @@ NSString* getPlatform()
     taskId = UIBackgroundTaskInvalid;
 	}
 
+#endif
 #endif
 }
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection 
@@ -481,12 +499,14 @@ NSString* getPlatform()
 	self.eventsToSend = nil;
 	self.responseData = nil;
 	self.connection = nil;
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE  
 	[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40000
 	if (&UIBackgroundTaskInvalid && [[UIApplication sharedApplication] respondsToSelector:@selector(endBackgroundTask:)] && taskId != UIBackgroundTaskInvalid) {
 		[[UIApplication sharedApplication] endBackgroundTask:taskId];
     taskId = UIBackgroundTaskInvalid;
 	}
+#endif
 #endif
 }
 
